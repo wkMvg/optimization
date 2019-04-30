@@ -1,0 +1,66 @@
+/* gauss-newton
+i 1     2     3     4      5      6      7
+x 0.038 0.194 0.425 0.626  1.253  2.500  3.740
+y 0.050 0.127 0.094 0.2122 0.2729 0.2665 0.3317
+
+y = v*x/(k+x);
+initial v = 0.9 k = 0.2
+using gauss-newton to fit this function
+
+set error = (f(x)-y)^2
+x_n+1 = x_n - (J_T*J)-1*J_T*(f(x)-y)
+*/
+#include <iostream>
+#include <vector>
+#include <Eigen/Dense>
+
+using namespace std;
+using namespace Eigen;
+
+int main()
+{
+	Matrix<double, 7, 1> x;
+	x << 0.038, 0.194, 0.425, 0.626, 1.253, 2.500, 3.740;
+
+	Matrix<double, 7, 1> y;
+	y << 0.050, 0.127, 0.094, 0.2122, 0.2729, 0.2665, 0.3317;
+
+	double diff_x = 1000;
+	double epsilon = 0.0001;
+	double lastError = 100;
+
+	Matrix<double, 2, 1> currResult;
+	currResult << 0.9, 0.2;
+
+	while (diff_x > epsilon)
+	{
+		Matrix<double, 7, 2> jacobin;
+		Matrix<double, 7, 1> error;
+
+		/* calculate jacobin matrix */
+		for(int i = 0; i < 7; i++)
+		{
+			jacobin(i, 0) = x(i, 0) / (currResult(1, 0) + x(i, 0));
+			jacobin(i, 1) = -currResult(0, 0) * x(i, 0) / ((currResult(1, 0) + x(i, 0)) * (currResult(1, 0) + x(i, 0)));
+		}
+
+		/* calculate error */
+		for (int i = 0; i < 7; i++)
+		{
+			error(i, 0) = currResult(0, 0) * x(i, 0) / (currResult(1, 0) + x(i, 0)) - y(i, 0);
+		}
+
+		Matrix<double, 2, 1> nextResult;
+		nextResult = currResult - (jacobin.transpose() * jacobin).inverse() * jacobin.transpose()*error;
+
+		/* calculate total error */
+		double currError = 0;
+		for (int i = 0; i < 7; i++)
+			currError += error(i, 0);
+
+		diff_x = abs(currError - lastError);
+		lastError = currError;
+
+		currResult = nextResult;
+	}
+}
